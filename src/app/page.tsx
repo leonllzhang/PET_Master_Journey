@@ -1,65 +1,131 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import ProgressBar from "@/components/ProgressBar";
+import TaskCard from "@/components/TaskCard";
+import { defaultTasks, periodLabels } from "@/data/tasks";
+
+const encouragements = [
+  "Amazing! One step closer to B1! 🌟",
+  "You're on fire! Keep going! 🔥",
+  "PET here you come! 🎯",
+  "Brilliant effort today! 💪",
+  "Every expert was once a beginner! 🌱",
+  "You're making great progress! 📈",
+];
+
+const morningGreetings = [
+  "Good morning, sunshine! Ready to learn? ☀️",
+  "Rise and shine! Let's master PET! 🌅",
+  "New day, new words! Let's go! 🚀",
+];
+
+const afternoonGreetings = [
+  "Keep going! You're doing great! 💪",
+  "Afternoon power session! ⚡",
+  "Halfway there! Stay focused! 🎯",
+];
 
 export default function Home() {
+  const [doneTasks, setDoneTasks] = useState<Set<string>>(new Set());
+  const [showEncouragement, setShowEncouragement] = useState(false);
+  const [encouragement, setEncouragement] = useState("");
+
+  // Determine greeting based on time of day
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? morningGreetings[Math.floor(Math.random() * morningGreetings.length)]
+      : hour < 18
+        ? afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)]
+        : "Evening study session! You're dedicated! 🌙";
+
+  const totalTasks = defaultTasks.length;
+  const completedTasks = doneTasks.size;
+
+  const handleToggle = (taskId: string) => {
+    const newDone = new Set(doneTasks);
+    if (newDone.has(taskId)) {
+      newDone.delete(taskId);
+    } else {
+      newDone.add(taskId);
+      // Show encouragement
+      const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+      setEncouragement(msg);
+      setShowEncouragement(true);
+      setTimeout(() => setShowEncouragement(false), 2500);
+    }
+    setDoneTasks(newDone);
+  };
+
+  const grouped = defaultTasks.reduce(
+    (acc, task) => {
+      const period = task.period;
+      if (!acc[period]) acc[period] = [];
+      acc[period].push(task);
+      return acc;
+    },
+    {} as Record<string, typeof defaultTasks>
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="text-center py-2">
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl font-extrabold bg-gradient-to-r from-pet-purple to-pet-teal bg-clip-text text-transparent"
+        >
+          ✨ PET Master Journey ✨
+        </motion.h1>
+        <p className="text-sm text-gray-500 mt-1">{greeting}</p>
+      </div>
+
+      {/* Progress */}
+      <ProgressBar value={completedTasks} total={totalTasks} />
+
+      {/* Encouragement toast */}
+      {showEncouragement && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="bg-gradient-to-r from-pet-teal to-emerald-400 text-white rounded-2xl p-4 text-center font-bold shadow-lg"
+        >
+          <Sparkles className="w-5 h-5 inline-block mr-1" />
+          {encouragement}
+        </motion.div>
+      )}
+
+      {/* Tasks by period */}
+      {Object.entries(grouped).map(([period, tasks]) => (
+        <div key={period}>
+          <h2 className="text-sm font-bold text-gray-500 mb-2 mt-1">
+            {periodLabels[period] || period}
+          </h2>
+          <div className="flex flex-col gap-2.5">
+            {tasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                done={doneTasks.has(task.id)}
+                onToggle={() => handleToggle(task.id)}
+              />
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      ))}
+
+      {/* Footer */}
+      <div className="text-center py-4">
+        <p className="text-xs text-gray-400">
+          距离 PET 考试还有{" "}
+          <span className="font-bold text-pet-purple">60</span> 天
+        </p>
+      </div>
     </div>
   );
 }

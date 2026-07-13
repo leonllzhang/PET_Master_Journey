@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Square, RotateCcw, Image } from "lucide-react";
+import { Play, Square, RotateCcw, Image, Headphones } from "lucide-react";
 
 interface PetPicture {
   id: string;
@@ -16,52 +16,260 @@ interface PetPicture {
 
 const petPictures: PetPicture[] = [
   {
-    id: "park",
-    imageFile: "",
-    gradient: "from-emerald-200 to-cyan-200",
-    emoji: "🌳",
-    scene: "公园里的家庭",
-    details: ["a sunny day", "a family having a picnic", "children playing"],
+    id: "family",
+    imageFile: "/images/speaking/family.jpg",
+    gradient: "from-emerald-200 to-teal-200",
+    emoji: "👨‍👩‍👧‍👦",
+    scene: "家庭相聚",
+    details: ["a family at home", "parents and children", "spending time together"],
   },
   {
-    id: "beach",
-    imageFile: "",
+    id: "family-2",
+    imageFile: "/images/speaking/family-2.jpg",
+    gradient: "from-green-200 to-emerald-200",
+    emoji: "☀️",
+    scene: "家庭户外",
+    details: ["a family outdoors", "playing together", "having fun"],
+  },
+  {
+    id: "friends",
+    imageFile: "/images/speaking/friends.jpg",
     gradient: "from-sky-200 to-blue-200",
-    emoji: "🏖️",
-    scene: "海滩假日",
-    details: ["people on the beach", "the sea and waves", "building sandcastles"],
+    emoji: "👫",
+    scene: "朋友聚会",
+    details: ["friends meeting up", "talking together", "enjoying free time"],
   },
   {
-    id: "birthday",
-    imageFile: "",
-    gradient: "from-orange-200 to-rose-200",
-    emoji: "🎂",
-    scene: "生日派对",
-    details: ["a birthday cake", "friends and family", "balloons and presents"],
-  },
-  {
-    id: "school",
-    imageFile: "",
+    id: "board-game",
+    imageFile: "/images/speaking/board-game.jpg",
     gradient: "from-purple-200 to-pink-200",
+    emoji: "🎲",
+    scene: "玩桌游",
+    details: ["playing a board game", "sitting at a table", "family competition"],
+  },
+  {
+    id: "cooking-family",
+    imageFile: "/images/speaking/cooking-family.jpg",
+    gradient: "from-orange-200 to-yellow-200",
+    emoji: "🍳",
+    scene: "一起做饭",
+    details: ["a family cooking", "preparing food together", "in the kitchen"],
+  },
+  {
+    id: "school-1",
+    imageFile: "/images/speaking/school-1.jpg",
+    gradient: "from-blue-200 to-indigo-200",
     emoji: "🏫",
-    scene: "学校生活",
-    details: ["a classroom", "students studying", "a teacher helping"],
+    scene: "学校教室",
+    details: ["a classroom", "students learning", "a teacher teaching"],
+  },
+  {
+    id: "do-homework",
+    imageFile: "/images/speaking/do_homework.jpg",
+    gradient: "from-indigo-200 to-violet-200",
+    emoji: "📝",
+    scene: "做作业",
+    details: ["a student studying", "doing homework", "focusing on work"],
+  },
+  {
+    id: "chat",
+    imageFile: "/images/speaking/chat.jpg",
+    gradient: "from-rose-200 to-pink-200",
+    emoji: "💬",
+    scene: "朋友聊天",
+    details: ["two people chatting", "having a conversation", "friends talking"],
+  },
+  {
+    id: "shop-fruits",
+    imageFile: "/images/speaking/shop_fruits.jpg",
+    gradient: "from-green-200 to-lime-200",
+    emoji: "🍎",
+    scene: "买水果",
+    details: ["buying fruit", "at a market stall", "choosing fresh food"],
   },
   {
     id: "shopping",
-    imageFile: "",
+    imageFile: "/images/speaking/shopping.jpg",
     gradient: "from-yellow-200 to-amber-200",
     emoji: "🛍️",
     scene: "购物中心",
-    details: ["people shopping", "a clothes store", "friends choosing"],
+    details: ["people shopping", "a store", "choosing clothes"],
   },
   {
-    id: "sports",
-    imageFile: "",
+    id: "buy-shoes",
+    imageFile: "/images/speaking/buy_shoes.jpg",
+    gradient: "from-amber-200 to-orange-200",
+    emoji: "👟",
+    scene: "买鞋子",
+    details: ["trying on shoes", "at a shoe shop", "customer and shop assistant"],
+  },
+  {
+    id: "dinner-together",
+    imageFile: "/images/speaking/dinner_together.jpeg",
     gradient: "from-red-200 to-rose-200",
+    emoji: "🍽️",
+    scene: "一起吃饭",
+    details: ["people eating dinner", "a meal together", "family at the table"],
+  },
+  {
+    id: "pizza",
+    imageFile: "/images/speaking/pizza.jpeg",
+    gradient: "from-orange-200 to-red-200",
+    emoji: "🍕",
+    scene: "吃披萨",
+    details: ["eating pizza", "friends sharing food", "at a restaurant"],
+  },
+  {
+    id: "watch-tv",
+    imageFile: "/images/speaking/watch_tv.jpg",
+    gradient: "from-gray-200 to-slate-200",
+    emoji: "📺",
+    scene: "看电视",
+    details: ["watching TV", "sitting on a sofa", "family relaxing at home"],
+  },
+  {
+    id: "reading-grass",
+    imageFile: "/images/speaking/reading_on_grass.jpg",
+    gradient: "from-lime-200 to-green-200",
+    emoji: "📖",
+    scene: "草地阅读",
+    details: ["reading on the grass", "a sunny day in the park", "enjoying a book"],
+  },
+  {
+    id: "football",
+    imageFile: "/images/speaking/football.jpg",
+    gradient: "from-emerald-200 to-green-200",
     emoji: "⚽",
-    scene: "运动场上",
-    details: ["children playing football", "a coach", "a sports field"],
+    scene: "踢足球",
+    details: ["playing football", "children on a field", "sports game"],
+  },
+  {
+    id: "basketball",
+    imageFile: "/images/speaking/play_basketball.jpg",
+    gradient: "from-orange-200 to-amber-200",
+    emoji: "🏀",
+    scene: "打篮球",
+    details: ["playing basketball", "on a court", "sports practice"],
+  },
+  {
+    id: "music",
+    imageFile: "/images/speaking/music.jpg",
+    gradient: "from-violet-200 to-purple-200",
+    emoji: "🎵",
+    scene: "音乐时光",
+    details: ["listening to music", "enjoying a song", "relaxing"],
+  },
+  {
+    id: "play-guita",
+    imageFile: "/images/speaking/play_guita.jpg",
+    gradient: "from-pink-200 to-rose-200",
+    emoji: "🎸",
+    scene: "弹吉他",
+    details: ["playing the guitar", "making music", "a musician practicing"],
+  },
+  {
+    id: "take-photo",
+    imageFile: "/images/speaking/take_photo.jpg",
+    gradient: "from-cyan-200 to-sky-200",
+    emoji: "📷",
+    scene: "拍照",
+    details: ["taking a photo", "using a camera", "capturing a memory"],
+  },
+  {
+    id: "usephone",
+    imageFile: "/images/speaking/usephone.jpg",
+    gradient: "from-blue-200 to-indigo-200",
+    emoji: "📱",
+    scene: "用手机",
+    details: ["using a smartphone", "checking messages", "modern technology"],
+  },
+  {
+    id: "travel",
+    imageFile: "/images/speaking/travel.jpg",
+    gradient: "from-teal-200 to-cyan-200",
+    emoji: "🧳",
+    scene: "旅行",
+    details: ["going on a trip", "visiting a new place", "exploring"],
+  },
+  {
+    id: "travel-bus",
+    imageFile: "/images/speaking/traveling-by-bus.jpg",
+    gradient: "from-amber-200 to-yellow-200",
+    emoji: "🚌",
+    scene: "坐公交",
+    details: ["on a bus", "public transport", "traveling together"],
+  },
+  {
+    id: "birthday",
+    imageFile: "/images/speaking/brithday.jpg",
+    gradient: "from-pink-200 to-purple-200",
+    emoji: "🎂",
+    scene: "生日派对",
+    details: ["a birthday party", "cake and presents", "celebrating with friends"],
+  },
+  {
+    id: "party",
+    imageFile: "/images/speaking/party.jpg",
+    gradient: "from-red-200 to-pink-200",
+    emoji: "🎉",
+    scene: "派对",
+    details: ["having a party", "people celebrating", "music and dancing"],
+  },
+  {
+    id: "discussion",
+    imageFile: "/images/speaking/discussion.jpg",
+    gradient: "from-blue-200 to-indigo-200",
+    emoji: "💡",
+    scene: "小组讨论",
+    details: ["a group discussion", "sharing ideas", "working on a project"],
+  },
+  {
+    id: "pet-nurse",
+    imageFile: "/images/speaking/pet_nurse.jpg",
+    gradient: "from-emerald-200 to-teal-200",
+    emoji: "🐾",
+    scene: "宠物护士",
+    details: ["taking care of a pet", "at the vet", "helping animals"],
+  },
+  {
+    id: "police",
+    imageFile: "/images/speaking/police.jpg",
+    gradient: "from-blue-200 to-slate-200",
+    emoji: "👮",
+    scene: "警察",
+    details: ["a police officer", "helping people", "community worker"],
+  },
+  {
+    id: "plant",
+    imageFile: "/images/speaking/plant.jpg",
+    gradient: "from-green-200 to-emerald-200",
+    emoji: "🌱",
+    scene: "种植物",
+    details: ["planting a tree", "gardening", "taking care of nature"],
+  },
+  {
+    id: "pickup-rubbish",
+    imageFile: "/images/speaking/pickup_rubbish.jpg",
+    gradient: "from-lime-200 to-green-200",
+    emoji: "♻️",
+    scene: "捡垃圾志愿者",
+    details: ["picking up rubbish", "volunteering", "helping the environment"],
+  },
+  {
+    id: "class",
+    imageFile: "/images/speaking/class.png",
+    gradient: "from-indigo-200 to-blue-200",
+    emoji: "👩‍🏫",
+    scene: "上课",
+    details: ["in a class", "students and teacher", "learning together"],
+  },
+  {
+    id: "buy-dinner",
+    imageFile: "/images/speaking/buy_dinner.jpg",
+    gradient: "from-yellow-200 to-orange-200",
+    emoji: "🥡",
+    scene: "买晚餐",
+    details: ["buying takeaway food", "ordering dinner", "choosing food"],
   },
 ];
 
@@ -72,8 +280,13 @@ export default function SpeakingTimer() {
   const [transcript, setTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [imgError, setImgError] = useState<Set<string>>(new Set());
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Timer logic
   useEffect(() => {
@@ -90,8 +303,31 @@ export default function SpeakingTimer() {
     };
   }, [isRunning, timeLeft]);
 
-  // Web Speech API recognition
-  const startRecording = useCallback(() => {
+  // Web Speech API recognition + MediaRecorder audio capture
+  const startRecording = useCallback(async () => {
+    // --- MediaRecorder: capture actual audio for playback ---
+    audioChunksRef.current = [];
+    setAudioUrl(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        // Stop the stream tracks so the mic indicator goes away
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+    } catch {
+      // Mic permission denied — still allow text-only transcription
+    }
+
+    // --- SpeechRecognition: real-time transcription ---
     const SpeechRecognitionAPI =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
@@ -121,16 +357,39 @@ export default function SpeakingTimer() {
   }, []);
 
   const stopRecording = useCallback(() => {
+    // Stop speech recognition
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
+    // Stop media recorder
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
     setIsRecording(false);
   }, []);
+
+  const handlePlayback = () => {
+    if (!audioUrl) return;
+    if (audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+      audioRef.current.onended = () => setIsPlaying(false);
+    }
+  };
+
+  const handleStopPlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
 
   const handleStart = () => {
     setTimeLeft(60);
     setTranscript("");
+    setAudioUrl(null);
     setIsRunning(true);
     startRecording();
   };
@@ -141,9 +400,16 @@ export default function SpeakingTimer() {
   };
 
   const handleReset = () => {
+    // Stop playback if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
     handleStop();
     setTimeLeft(60);
     setTranscript("");
+    setAudioUrl(null);
   };
 
   const currentPic = petPictures[pictureIndex];
@@ -260,6 +526,36 @@ export default function SpeakingTimer() {
         <div className="flex items-center gap-2 text-sm text-red-400 font-bold animate-pulse">
           <div className="w-2 h-2 rounded-full bg-red-400" />
           录音中...
+        </div>
+      )}
+
+      {/* Audio playback */}
+      {audioUrl && !isRecording && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-pet-light">
+          <audio ref={audioRef} src={audioUrl} className="hidden" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-pet-light flex items-center justify-center text-pet-purple">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-700">录音回听</p>
+              <p className="text-xs text-gray-400">
+                {audioChunksRef.current.length > 0
+                  ? `约 ${Math.round(audioChunksRef.current.reduce((s, b) => s + b.size, 0) / 16000)} 秒`
+                  : "点击播放"}
+              </p>
+            </div>
+            <button
+              onClick={isPlaying ? handleStopPlayback : handlePlayback}
+              className="w-10 h-10 rounded-full bg-pet-teal text-white flex items-center justify-center hover:bg-pet-teal-dark transition-colors"
+            >
+              {isPlaying ? (
+                <Square className="w-4 h-4 fill-white" />
+              ) : (
+                <Play className="w-4 h-4 fill-white ml-0.5" />
+              )}
+            </button>
+          </div>
         </div>
       )}
 

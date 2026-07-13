@@ -1,0 +1,8 @@
+提示词模板：
+A realistic, high-quality photograph for a B1 Preliminary English exam. The scene shows [插入场景]. People are engaging in clear activities. The composition is natural with plenty of details in the background and foreground. No text, no artistic filters, looks like a real-life snapshot.
+
+学习类： A group of students studying in a modern library with laptops and books.
+家庭类： A family cooking together in a bright kitchen, looking happy.
+户外类： People hiking in the mountains on a sunny day, carrying backpacks.
+社交类： Friends having a picnic in a green park with a city skyline in the background.
+购物类： A teenager buying clothes in a busy shopping mall, talking to a shop assistant.

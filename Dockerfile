@@ -12,7 +12,7 @@ COPY prisma.config.ts ./
 RUN npx prisma generate
 
 # Build Next.js
-COPY tsconfig.json next.config.ts ./
+COPY tsconfig.json next.config.ts babel.config.js ./
 COPY public/ ./public/
 COPY src/ ./src/
 # Generate standalone Tailwind CSS (avoids webpack CSS parsing issues) then build

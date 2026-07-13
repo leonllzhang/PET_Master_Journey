@@ -23,6 +23,9 @@
 # generated tailwind
 /public/tailwind.css
 
+# uploads
+/uploads/
+
 # misc
 .DS_Store
 *.pem

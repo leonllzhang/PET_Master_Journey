@@ -5,9 +5,14 @@ services:
       - "6001:6001"
     environment:
       DATABASE_URL: "postgresql://pet_user:pet_pass_2026@medical_online_exam-db-1:5432/pet_master_journey"
+    volumes:
+      - uploads:/app/uploads
     networks:
       - medical_online_exam_default
     restart: unless-stopped
+
+volumes:
+  uploads:
 
 networks:
   medical_online_exam_default:

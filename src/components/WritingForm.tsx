@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, Camera } from "lucide-react";
 import { saveWritingRecord } from "@/lib/storage";
+import PhotoUploader from "@/components/PhotoUploader";
 
 interface Feedback {
   rating: string;
@@ -13,6 +14,7 @@ interface Feedback {
 
 export default function WritingForm() {
   const [text, setText] = useState("");
+  const [imagePath, setImagePath] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -56,21 +58,34 @@ export default function WritingForm() {
         text,
         feedback: fb.rating + " | " + fb.encouragement,
         wordCount: text.split(/\s+/).filter(Boolean).length,
+        imagePath: imagePath || undefined,
       }).catch(() => {});
     }, 1000);
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Input */}
+      {/* Photo Upload */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-pet-light">
         <label className="block text-sm font-bold text-gray-600 mb-2">
-          ✏️ 写下你的作文
+          📷 第一步：拍照上传手写作文
+        </label>
+        <PhotoUploader
+          onUploadComplete={(p) => setImagePath(p)}
+          onRemove={() => setImagePath(null)}
+          disabled={loading}
+        />
+      </div>
+
+      {/* Text Input */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-pet-light">
+        <label className="block text-sm font-bold text-gray-600 mb-2">
+          ✏️ 第二步：对照照片录入文字
         </label>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="例如：My Best Friend... (至少 50 词喔～)"
+          placeholder="看着上方的照片，把作文打进来吧..."
           className="w-full h-40 p-4 rounded-xl border-2 border-gray-100 focus:border-pet-teal focus:outline-none resize-none text-base leading-relaxed"
         />
         <div className="flex justify-between items-center mt-2">

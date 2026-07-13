@@ -79,6 +79,7 @@ export interface WritingRecord {
   text: string;
   feedback: string;
   wordCount: number;
+  imagePath?: string;
 }
 
 export async function saveWritingRecord(record: WritingRecord): Promise<void> {

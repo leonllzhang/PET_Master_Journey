@@ -68,7 +68,13 @@ export default function SynonymGame() {
     setShowResult(false);
   };
 
-  if (pairs.length === 0) return null;
+  if (pairs.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-2 border-pet-teal/30 border-t-pet-teal rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (finished) {
     const pct = Math.round((score / total) * 100);

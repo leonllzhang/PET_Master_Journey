@@ -7,9 +7,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { date, text, feedback, wordCount } = await request.json();
+  const { date, text, feedback, wordCount, imagePath } = await request.json();
   const record = await prisma.writing.create({
-    data: { date, text, feedback, wordCount },
+    data: { date, text, feedback, wordCount, imagePath },
   });
   return NextResponse.json(record);
 }

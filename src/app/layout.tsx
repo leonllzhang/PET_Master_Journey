@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Script from "next/script";
 import Navigation from "@/components/Navigation";
+import { CODE } from "@/components/Polyfill";
 
 export const metadata: Metadata = {
   title: "PET Master Journey",
@@ -24,6 +26,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-gradient-to-b from-pet-light/80 via-white to-pet-pink/30">
+        <Script id="safari-polyfill" strategy="beforeInteractive">
+          {CODE}
+        </Script>
         <main className="flex-1 max-w-lg mx-auto w-full px-4 pt-6 pb-24">
           {children}
         </main>

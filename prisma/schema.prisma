@@ -30,6 +30,7 @@ model Writing {
   text      String
   feedback  String
   wordCount Int      @default(0)
+  imagePath String?
   createdAt DateTime @default(now())
 }
 

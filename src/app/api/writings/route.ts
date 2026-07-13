@@ -1,0 +1,15 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  const records = await prisma.writing.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
+  return NextResponse.json(records);
+}
+
+export async function POST(request: Request) {
+  const { date, text, feedback, wordCount } = await request.json();
+  const record = await prisma.writing.create({
+    data: { date, text, feedback, wordCount },
+  });
+  return NextResponse.json(record);
+}

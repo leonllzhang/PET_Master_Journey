@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, RefreshCw, Trophy } from "lucide-react";
 import { synonymBank, shuffleArray, SynonymPair } from "@/data/synonyms";
+import { saveSynonymResult } from "@/lib/storage";
 
 export default function SynonymGame() {
   const [pairs, setPairs] = useState<SynonymPair[]>([]);
@@ -15,6 +16,18 @@ export default function SynonymGame() {
   const [showResult, setShowResult] = useState(false);
   const [wrongWords, setWrongWords] = useState<SynonymPair[]>([]);
   const [finished, setFinished] = useState(false);
+
+  // Save result to localStorage when finished
+  useEffect(() => {
+    if (finished && total > 0) {
+      saveSynonymResult({
+        date: new Date().toISOString().split("T")[0],
+        score,
+        total,
+        wrongWords: wrongWords.map((w) => ({ word: w.word, correct: w.correct })),
+      }).catch(() => {});
+    }
+  }, [finished]);
 
   const initGame = useCallback(() => {
     const shuffled = shuffleArray(synonymBank).slice(0, 15);

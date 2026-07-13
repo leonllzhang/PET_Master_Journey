@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Send, Sparkles } from "lucide-react";
+import { saveWritingRecord } from "@/lib/storage";
 
 interface Feedback {
   rating: string;
@@ -47,8 +48,15 @@ export default function WritingForm() {
     setLoading(true);
     // Simulate API delay
     setTimeout(() => {
-      setFeedback(generateFeedback(text));
+      const fb = generateFeedback(text);
+      setFeedback(fb);
       setLoading(false);
+      saveWritingRecord({
+        date: new Date().toISOString().split("T")[0],
+        text,
+        feedback: fb.rating + " | " + fb.encouragement,
+        wordCount: text.split(/\s+/).filter(Boolean).length,
+      }).catch(() => {});
     }, 1000);
   };
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, RotateCcw, Clock, History } from "lucide-react";
+import { saveRetell as saveRetellApi, loadRetells } from "@/lib/storage";
 
 interface RetellEntry {
   id: string;
@@ -10,8 +11,6 @@ interface RetellEntry {
   episode: string;
   date: string;
 }
-
-const STORAGE_KEY = "hilda-retells";
 
 export default function RetellRecorder() {
   const [timeLeft, setTimeLeft] = useState(30);
@@ -27,14 +26,17 @@ export default function RetellRecorder() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setHistory(JSON.parse(stored));
+    loadRetells().then((records) => setHistory(records as RetellEntry[]));
   }, []);
 
-  const saveHistory = (entry: RetellEntry) => {
-    const updated = [entry, ...history].slice(0, 20);
-    setHistory(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  const saveHistory = async (entry: RetellEntry) => {
+    await saveRetellApi({
+      date: new Date().toISOString().split("T")[0],
+      transcript: entry.transcript,
+      episode: entry.episode,
+    });
+    const records = await loadRetells();
+    setHistory(records as RetellEntry[]);
   };
 
   // Timer

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { BookmarkPlus, Bookmark, Trash2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { savePhrase as savePhraseApi, loadPhrases, deletePhrase as deletePhraseApi } from "@/lib/storage";
 
 interface Phrase {
   id: string;
@@ -23,25 +24,13 @@ export default function GoldenPhrasePicker() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setPhrases(JSON.parse(stored));
+    loadPhrases().then(setPhrases);
   }, []);
 
-  const saveToStorage = (updated: Phrase[]) => {
-    setPhrases(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!text.trim()) return;
-    const newPhrase: Phrase = {
-      id: Date.now().toString(),
-      text: text.trim(),
-      speaker: speaker.trim() || "Hilda",
-      episode: episode.trim() || `第 ${phrases.length + 1} 集`,
-      createdAt: new Date().toLocaleString("zh-CN"),
-    };
-    saveToStorage([newPhrase, ...phrases]);
+    await savePhraseApi({ text: text.trim(), speaker, episode });
+    await loadPhrases().then(setPhrases);
     setText("");
     setSpeaker("");
     setEpisode("");
@@ -50,8 +39,9 @@ export default function GoldenPhrasePicker() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleDelete = (id: string) => {
-    saveToStorage(phrases.filter((p) => p.id !== id));
+  const handleDelete = async (id: string) => {
+    await deletePhraseApi(id);
+    await loadPhrases().then(setPhrases);
   };
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Square, RotateCcw, Image, Headphones } from "lucide-react";
+import { saveSpeakingRecord } from "@/lib/storage";
 
 interface PetPicture {
   id: string;
@@ -287,6 +288,10 @@ export default function SpeakingTimer() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const transcriptRef = useRef("");
+
+  // Keep transcriptRef in sync
+  useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
   // Timer logic
   useEffect(() => {
@@ -367,7 +372,15 @@ export default function SpeakingTimer() {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
-  }, []);
+    // Save transcript if there is one
+    if (transcriptRef.current.trim()) {
+      saveSpeakingRecord({
+        date: new Date().toISOString().split("T")[0],
+        scene: petPictures[pictureIndex].scene,
+        transcript: transcriptRef.current.trim(),
+      }).catch(() => {});
+    }
+  }, [pictureIndex]);
 
   const handlePlayback = () => {
     if (!audioUrl) return;

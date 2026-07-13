@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import ProgressBar from "@/components/ProgressBar";
 import TaskCard from "@/components/TaskCard";
 import { defaultTasks, periodLabels } from "@/data/tasks";
+import { loadTodayTasks, saveDayTasks } from "@/lib/storage";
 
 const encouragements = [
   "Amazing! One step closer to B1! 🌟",
@@ -32,6 +33,17 @@ export default function Home() {
   const [doneTasks, setDoneTasks] = useState<Set<string>>(new Set());
   const [showEncouragement, setShowEncouragement] = useState(false);
   const [encouragement, setEncouragement] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    loadTodayTasks().then((tasks) => setDoneTasks(new Set(tasks)));
+    setLoaded(true);
+  }, []);
+
+  // Auto-save to localStorage when tasks change
+  useEffect(() => {
+    if (loaded) saveDayTasks(Array.from(doneTasks));
+  }, [doneTasks, loaded]);
 
   // Determine greeting based on time of day — use state + effect to avoid hydration mismatch
   const [greeting, setGreeting] = useState("Loading...");

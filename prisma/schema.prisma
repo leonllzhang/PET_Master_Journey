@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model DailyTask {
+  id        String   @id @default(uuid())
+  date      String   @unique
+  tasks     String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SynonymResult {
+  id         String   @id @default(uuid())
+  date       String
+  score      Int
+  total      Int
+  wrongWords String   @default("[]")
+  createdAt  DateTime @default(now())
+}
+
+model Writing {
+  id        String   @id @default(uuid())
+  date      String
+  text      String
+  feedback  String
+  wordCount Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Speaking {
+  id         String   @id @default(uuid())
+  date       String
+  scene      String
+  transcript String
+  createdAt  DateTime @default(now())
+}
+
+model GoldenPhrase {
+  id        String   @id @default(uuid())
+  text      String
+  speaker   String   @default("")
+  episode   String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model RetellRecord {
+  id         String   @id @default(uuid())
+  date       String
+  transcript String
+  episode    String   @default("")
+  createdAt  DateTime @default(now())
+}

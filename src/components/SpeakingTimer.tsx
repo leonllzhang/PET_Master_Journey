@@ -3,18 +3,65 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Square, RotateCcw, Image } from "lucide-react";
 
-const petPictures = [
+interface PetPicture {
+  id: string;
+  /** 本地图片路径（放入 public/images/speaking/ 目录）— 设为空字符串则用 emoji 占位 */
+  imageFile: string;
+  /** emoji 占位（当 imageFile 为空或图片加载失败时显示） */
+  emoji: string;
+  scene: string;
+  details: string[];
+  gradient: string;
+}
+
+const petPictures: PetPicture[] = [
   {
-    url: "https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=400&h=300&fit=crop",
-    label: "公园里的家庭",
+    id: "park",
+    imageFile: "",
+    gradient: "from-emerald-200 to-cyan-200",
+    emoji: "🌳",
+    scene: "公园里的家庭",
+    details: ["a sunny day", "a family having a picnic", "children playing"],
   },
   {
-    url: "https://images.unsplash.com/photo-1560090995-01632a28895b?w=400&h=300&fit=crop",
-    label: "海滩假日",
+    id: "beach",
+    imageFile: "",
+    gradient: "from-sky-200 to-blue-200",
+    emoji: "🏖️",
+    scene: "海滩假日",
+    details: ["people on the beach", "the sea and waves", "building sandcastles"],
   },
   {
-    url: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop",
-    label: "学校活动",
+    id: "birthday",
+    imageFile: "",
+    gradient: "from-orange-200 to-rose-200",
+    emoji: "🎂",
+    scene: "生日派对",
+    details: ["a birthday cake", "friends and family", "balloons and presents"],
+  },
+  {
+    id: "school",
+    imageFile: "",
+    gradient: "from-purple-200 to-pink-200",
+    emoji: "🏫",
+    scene: "学校生活",
+    details: ["a classroom", "students studying", "a teacher helping"],
+  },
+  {
+    id: "shopping",
+    imageFile: "",
+    gradient: "from-yellow-200 to-amber-200",
+    emoji: "🛍️",
+    scene: "购物中心",
+    details: ["people shopping", "a clothes store", "friends choosing"],
+  },
+  {
+    id: "sports",
+    imageFile: "",
+    gradient: "from-red-200 to-rose-200",
+    emoji: "⚽",
+    scene: "运动场上",
+    details: ["children playing football", "a coach", "a sports field"],
   },
 ];
 
@@ -24,6 +71,7 @@ export default function SpeakingTimer() {
   const [pictureIndex, setPictureIndex] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [imgError, setImgError] = useState<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -98,6 +146,13 @@ export default function SpeakingTimer() {
     setTranscript("");
   };
 
+  const currentPic = petPictures[pictureIndex];
+  const showLocalImage = currentPic.imageFile && !imgError.has(currentPic.id);
+
+  const handleImgError = (id: string) => {
+    setImgError((prev) => new Set(prev).add(id));
+  };
+
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timerPct = timeLeft / 60;
@@ -119,14 +174,31 @@ export default function SpeakingTimer() {
             换一张 →
           </button>
         </div>
-        <div className="relative rounded-xl overflow-hidden bg-gray-50 aspect-[4/3] flex items-center justify-center">
-          <img
-            src={petPictures[pictureIndex].url}
-            alt={petPictures[pictureIndex].label}
-            className="w-full h-full object-cover"
-          />
-          <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-            {petPictures[pictureIndex].label}
+        <div className={`relative rounded-xl overflow-hidden aspect-[4/3] flex flex-col items-center justify-center bg-gradient-to-br ${currentPic.gradient}`}>
+          {showLocalImage ? (
+            <img
+              src={currentPic.imageFile}
+              alt={currentPic.scene}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => handleImgError(currentPic.id)}
+            />
+          ) : (
+            <>
+              <span className="text-6xl mb-2">{currentPic.emoji}</span>
+              <div className="flex gap-2 mt-2 flex-wrap justify-center px-2">
+                {currentPic.details.map((d, i) => (
+                  <span key={i} className="text-[10px] bg-white/40 text-white px-2 py-0.5 rounded-full font-bold">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+          <span className={`absolute bottom-2 left-2 font-extrabold drop-shadow-md ${showLocalImage ? "bg-black/50 text-white" : "text-white"} text-sm px-3 py-1 rounded-full`}>
+            {currentPic.scene}
+          </span>
+          <span className="absolute top-2 right-2 bg-white/60 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold">
+            PET Speaking Part 2
           </span>
         </div>
       </div>

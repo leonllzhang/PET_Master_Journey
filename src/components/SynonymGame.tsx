@@ -17,7 +17,7 @@ export default function SynonymGame() {
   const [finished, setFinished] = useState(false);
 
   const initGame = useCallback(() => {
-    const shuffled = shuffleArray(synonymBank).slice(0, 10);
+    const shuffled = shuffleArray(synonymBank).slice(0, 15);
     setPairs(shuffled.map((p) => ({ ...p, options: shuffleArray(p.options) })));
     setCurrentIndex(0);
     setScore(0);
@@ -113,6 +113,11 @@ export default function SynonymGame() {
         animate={{ scale: 1, opacity: 1 }}
         className="bg-white rounded-3xl p-8 shadow-md border-2 border-pet-light text-center w-full"
       >
+        {current.topic && (
+          <span className="inline-block bg-pet-light text-pet-purple text-[10px] font-bold px-2.5 py-0.5 rounded-full mb-2">
+            {current.topic}
+          </span>
+        )}
         <p className="text-xs text-gray-400 mb-2">请选出以下单词的同义词</p>
         <p className="text-3xl font-bold text-gray-800 mb-1">{current.word}</p>
       </motion.div>

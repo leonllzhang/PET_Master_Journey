@@ -33,14 +33,18 @@ export default function Home() {
   const [showEncouragement, setShowEncouragement] = useState(false);
   const [encouragement, setEncouragement] = useState("");
 
-  // Determine greeting based on time of day
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12
-      ? morningGreetings[Math.floor(Math.random() * morningGreetings.length)]
-      : hour < 18
-        ? afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)]
-        : "Evening study session! You're dedicated! 🌙";
+  // Determine greeting based on time of day — use state + effect to avoid hydration mismatch
+  const [greeting, setGreeting] = useState("Loading...");
+  useEffect(() => {
+    const hour = new Date().getHours();
+    const msg =
+      hour < 12
+        ? morningGreetings[Math.floor(Math.random() * morningGreetings.length)]
+        : hour < 18
+          ? afternoonGreetings[Math.floor(Math.random() * afternoonGreetings.length)]
+          : "Evening study session! You're dedicated! 🌙";
+    setGreeting(msg);
+  }, []);
 
   const totalTasks = defaultTasks.length;
   const completedTasks = doneTasks.size;

@@ -20,6 +20,9 @@
 # production
 /build
 
+# generated tailwind
+/public/tailwind.css
+
 # misc
 .DS_Store
 *.pem

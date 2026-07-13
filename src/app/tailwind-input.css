@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #faf5ff;
+  --color-foreground: #1e1b2e;
+  --color-pet-light: #f3e8ff;
+  --color-pet-pink: #fce7f3;
+  --color-pet-teal: #2dd4bf;
+  --color-pet-teal-dark: #14b8a6;
+  --color-pet-lavender: #c4b5fd;
+  --color-pet-purple: #a78bfa;
+  --color-pet-warm: #fef3c7;
+  --font-sans: "Nunito", system-ui, sans-serif;
+  --font-mono: "Fira Code", monospace;
+}

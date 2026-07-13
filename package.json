@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 6001",
-    "build": "next build",
+    "build": "tailwindcss -i src/app/tailwind-input.css -o public/tailwind.css && next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
@@ -19,6 +19,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

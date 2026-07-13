@@ -1,38 +1,14 @@
-version: "3.8"
-
 services:
-  # === PET Master Journey App ===
   app:
     build: .
     ports:
       - "6001:6001"
     environment:
-      # DATABASE_URL: use internal PostgreSQL (default) or external
-      # - Internal (this file): uncomment the line below (default behavior)
-      # - External (your server): set to your existing PostgreSQL URL
-      DATABASE_URL: "postgresql://pet_user:pet_pass_2026@db:5432/pet_master_journey"
-    depends_on:
-      db:
-        condition: service_healthy
+      DATABASE_URL: "postgresql://pet_user:pet_pass_2026@medical_online_exam-db-1:5432/pet_master_journey"
+    networks:
+      - medical_online_exam_default
     restart: unless-stopped
 
-  # === PostgreSQL ===
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: pet_master_journey
-      POSTGRES_USER: pet_user
-      POSTGRES_PASSWORD: pet_pass_2026
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pet_user -d pet_master_journey"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-volumes:
-  pgdata:
+networks:
+  medical_online_exam_default:
+    external: true

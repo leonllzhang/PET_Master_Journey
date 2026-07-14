@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Square, RotateCcw, Image, Headphones } from "lucide-react";
+import { Play, Square, RotateCcw, Image, Headphones, History } from "lucide-react";
 import { saveSpeakingRecord, loadSpeakingHistory } from "@/lib/storage";
 
 interface PetPicture {
@@ -283,6 +283,8 @@ export default function SpeakingTimer() {
   const [imgError, setImgError] = useState<Set<string>>(new Set());
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -297,9 +299,10 @@ export default function SpeakingTimer() {
   // Keep transcriptRef in sync
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
-  // Load last record on mount for persistent audio playback
+  // Load speaking history on mount for history panel + persistent audio
   useEffect(() => {
     loadSpeakingHistory().then((records) => {
+      setHistory(records);
       if (records.length > 0 && (records[0] as any).audioPath) {
         setAudioUrl((records[0] as any).audioPath);
       }
@@ -454,7 +457,7 @@ export default function SpeakingTimer() {
         scene: petPictures[pictureIndex].scene,
         transcript: transcriptRef.current.trim() || "(语音未识别到文字，可播放音频收听)",
         audioPath: savedAudioPath || undefined,
-      }).catch(() => {});
+      }).then(refreshHistory).catch(() => {});
     }
   }, [pictureIndex]);
 
@@ -473,6 +476,15 @@ export default function SpeakingTimer() {
       audioRef.current.currentTime = 0;
       setIsPlaying(false);
     }
+  };
+
+  const refreshHistory = () => {
+    loadSpeakingHistory().then(setHistory);
+  };
+
+  const playHistoryAudio = (path: string) => {
+    const audio = new Audio(path);
+    audio.play().catch(() => {});
   };
 
   const handleStart = () => {
@@ -653,6 +665,47 @@ export default function SpeakingTimer() {
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-pet-light">
           <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">转写文字</p>
           <p className="text-sm text-gray-700 leading-relaxed">{transcript}</p>
+        </div>
+      )}
+
+      {/* History */}
+      {history.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-1.5 text-sm text-gray-500 font-bold"
+          >
+            <History className="w-4 h-4" />
+            练习记录 ({history.length})
+          </button>
+          {showHistory && (
+            <div className="mt-2 flex flex-col gap-2">
+              {history.map((entry: any) => (
+                <div key={entry.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                    {entry.transcript}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-400 flex-wrap">
+                    <span>{entry.scene}</span>
+                    <span>·</span>
+                    <span>{entry.date}</span>
+                    {entry.audioPath && (
+                      <>
+                        <span className="text-gray-300">·</span>
+                        <button
+                          onClick={() => playHistoryAudio(entry.audioPath)}
+                          className="flex items-center gap-1 text-pet-teal-dark font-bold hover:underline"
+                        >
+                          <Play className="w-3 h-3 fill-pet-teal-dark" />
+                          听录音
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

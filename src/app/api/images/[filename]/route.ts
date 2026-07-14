@@ -19,8 +19,18 @@ export async function GET(
   try {
     const buffer = await readFile(filepath);
     const ext = path.extname(filename).toLowerCase();
-    const contentType =
-      ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
+    const contentTypeMap: Record<string, string> = {
+      ".png": "image/png",
+      ".webp": "image/webp",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webm": "audio/webm",
+      ".m4a": "audio/mp4",
+      ".mp4": "audio/mp4",
+      ".wav": "audio/wav",
+      ".mp3": "audio/mpeg",
+    };
+    const contentType = contentTypeMap[ext] || "application/octet-stream";
 
     return new NextResponse(buffer, {
       headers: {

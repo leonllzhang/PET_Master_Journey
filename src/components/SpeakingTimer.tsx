@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Square, RotateCcw, Image, Headphones } from "lucide-react";
-import { saveSpeakingRecord } from "@/lib/storage";
+import { saveSpeakingRecord, loadSpeakingHistory } from "@/lib/storage";
 
 interface PetPicture {
   id: string;
@@ -287,11 +287,24 @@ export default function SpeakingTimer() {
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioMimeRef = useRef("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const transcriptRef = useRef("");
+  const isRecordingRef = useRef(false);
+  const streamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderReadyRef = useRef<Promise<void>>(Promise.resolve());
 
   // Keep transcriptRef in sync
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
+
+  // Load last record on mount for persistent audio playback
+  useEffect(() => {
+    loadSpeakingHistory().then((records) => {
+      if (records.length > 0 && (records[0] as any).audioPath) {
+        setAudioUrl((records[0] as any).audioPath);
+      }
+    });
+  }, []);
 
   // Timer logic
   useEffect(() => {
@@ -313,24 +326,32 @@ export default function SpeakingTimer() {
     // --- MediaRecorder: capture actual audio for playback ---
     audioChunksRef.current = [];
     setAudioUrl(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        // Stop the stream tracks so the mic indicator goes away
-        stream.getTracks().forEach((t) => t.stop());
-      };
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-    } catch {
-      // Mic permission denied — still allow text-only transcription
-    }
+    isRecordingRef.current = true;
+
+    const mediaPromise = (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+
+        const mimeTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+        const mime = mimeTypes.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+        audioMimeRef.current = mime;
+
+        const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        audioChunksRef.current = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+
+        recorder.start(1000);
+        mediaRecorderRef.current = recorder;
+      } catch {
+        // text-only mode
+      }
+    })();
+    mediaRecorderReadyRef.current = mediaPromise;
+    mediaPromise.catch(() => {});
 
     // --- SpeechRecognition: real-time transcription ---
     const SpeechRecognitionAPI =
@@ -353,7 +374,15 @@ export default function SpeakingTimer() {
     };
 
     recognition.onerror = () => {
-      setIsRecording(false);
+      // Don't setIsRecording(false) — let onend handle restart
+    };
+
+    recognition.onend = () => {
+      if (isRecordingRef.current) {
+        try { recognition.start(); } catch { /* permanent failure */ }
+      } else {
+        setIsRecording(false);
+      }
     };
 
     recognitionRef.current = recognition;
@@ -361,23 +390,70 @@ export default function SpeakingTimer() {
     setIsRecording(true);
   }, []);
 
-  const stopRecording = useCallback(() => {
+  const uploadAudioBlob = async (blob: Blob): Promise<string | null> => {
+    try {
+      const base64 = await blobToBase64(blob);
+      const mime = blob.type || "audio/mp4";
+      const res = await fetch("/api/upload-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio: base64, mime }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.path;
+    } catch {
+      return null;
+    }
+  };
+
+  const stopRecording = useCallback(async () => {
+    isRecordingRef.current = false;
+
     // Stop speech recognition
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
       recognitionRef.current = null;
     }
-    // Stop media recorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
+
+    // Wait for MediaRecorder to be ready
+    await Promise.race([
+      mediaRecorderReadyRef.current,
+      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+    ]);
+
+    // Stop media recorder and collect audio
+    let audioBlob: Blob | null = null;
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      const stopPromise = new Promise<void>((resolve) => {
+        recorder.onstop = () => resolve();
+      });
+      recorder.stop();
+      await stopPromise;
+      audioBlob = new Blob(audioChunksRef.current, { type: audioMimeRef.current || "audio/webm" });
     }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
     setIsRecording(false);
-    // Save transcript if there is one
-    if (transcriptRef.current.trim()) {
+
+    // Upload audio to server
+    let savedAudioPath: string | null = null;
+    if (audioBlob && audioBlob.size > 1000) {
+      savedAudioPath = await uploadAudioBlob(audioBlob);
+      if (savedAudioPath) setAudioUrl(savedAudioPath);
+    }
+
+    // Save record with audio path
+    if (transcriptRef.current.trim() || savedAudioPath) {
       saveSpeakingRecord({
         date: new Date().toISOString().split("T")[0],
         scene: petPictures[pictureIndex].scene,
-        transcript: transcriptRef.current.trim(),
+        transcript: transcriptRef.current.trim() || "(语音未识别到文字，可播放音频收听)",
+        audioPath: savedAudioPath || undefined,
       }).catch(() => {});
     }
   }, [pictureIndex]);
@@ -581,4 +657,13 @@ export default function SpeakingTimer() {
       )}
     </div>
   );
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, RotateCcw, Clock, History } from "lucide-react";
+import { Mic, Square, RotateCcw, Clock, History, Play, Loader2 } from "lucide-react";
 import { saveRetell as saveRetellApi, loadRetells } from "@/lib/storage";
 
 interface RetellEntry {
@@ -10,6 +10,7 @@ interface RetellEntry {
   transcript: string;
   episode: string;
   date: string;
+  audioPath?: string;
 }
 
 export default function RetellRecorder() {
@@ -21,9 +22,16 @@ export default function RetellRecorder() {
   const [episode, setEpisode] = useState("");
   const [history, setHistory] = useState<RetellEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [audioUploading, setAudioUploading] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioMimeRef = useRef("");
+  const isRecordingRef = useRef(false);
+  const mediaRecorderReadyRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     loadRetells().then((records) => setHistory(records as RetellEntry[]));
@@ -34,6 +42,7 @@ export default function RetellRecorder() {
       date: new Date().toISOString().split("T")[0],
       transcript: entry.transcript,
       episode: entry.episode,
+      audioPath: entry.audioPath,
     });
     const records = await loadRetells();
     setHistory(records as RetellEntry[]);
@@ -53,11 +62,75 @@ export default function RetellRecorder() {
     };
   }, [isRunning, timeLeft]);
 
-  const startRecording = useCallback(() => {
+  // Upload audio blob, returns the URL path
+  const uploadAudioBlob = async (blob: Blob): Promise<string | null> => {
+    setAudioUploading(true);
+    try {
+      const base64 = await blobToBase64(blob);
+      const mime = blob.type || "audio/mp4";
+      const res = await fetch("/api/upload-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio: base64, mime }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.path;
+    } catch {
+      return null;
+    } finally {
+      setAudioUploading(false);
+    }
+  };
+
+  const startMediaRecorder = useCallback(async () => {
+    const promise = (async () => {
+      if (typeof MediaRecorder === "undefined") return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+
+        const mimeTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+        const mime = mimeTypes.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+        audioMimeRef.current = mime;
+
+        const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        audioChunksRef.current = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+
+        // Start — collect data every second AND on stop
+        recorder.start(1000);
+        // Only set ref AFTER start() succeeds
+        mediaRecorderRef.current = recorder;
+      } catch (e) {
+        console.warn("MediaRecorder unavailable, text-only mode:", e);
+      }
+    })();
+    mediaRecorderReadyRef.current = promise;
+    await promise;
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    setAudioUploading(false);
+
+    isRecordingRef.current = true;
+
+    // Start audio capture (best effort)
+    startMediaRecorder();
+
+    // Start speech recognition
     const SpeechRecognitionAPI =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
-      alert("语音识别需要 Chrome 浏览器");
+      const isHttp = location.protocol !== "https:" && location.hostname !== "localhost";
+      if (isHttp) {
+        alert("语音识别需要 HTTPS 加密连接才能使用。请配置 SSL 证书后通过 https:// 访问，或在 localhost 本地测试。");
+      } else {
+        alert("当前浏览器不支持语音识别，请使用 Chrome 或 Safari 浏览器。");
+      }
       return;
     }
     const recognition = new SpeechRecognitionAPI();
@@ -79,35 +152,107 @@ export default function RetellRecorder() {
       setInterimText(interim);
     };
 
-    recognition.onerror = () => setIsRecording(false);
+    recognition.onerror = () => {
+      // Don't setIsRecording(false) — let onend handle restart logic
+    };
+
+    recognition.onend = () => {
+      // If recording should continue, restart speech recognition
+      if (isRecordingRef.current) {
+        try { recognition.start(); } catch { /* permanent failure — ignore */ }
+      } else {
+        setIsRecording(false);
+      }
+    };
 
     recognitionRef.current = recognition;
     recognition.start();
     setIsRecording(true);
-  }, []);
+  }, [startMediaRecorder]);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback(async () => {
+    isRecordingRef.current = false;
+
+    // Stop speech recognition
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
       recognitionRef.current = null;
     }
+
+    // Wait for MediaRecorder to finish setup (e.g. getUserMedia may be pending)
+    await Promise.race([
+      mediaRecorderReadyRef.current,
+      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+    ]);
+
+    // Stop media recorder and collect audio
+    let audioBlob: Blob | null = null;
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      const stopPromise = new Promise<void>((resolve) => {
+        recorder.onstop = () => resolve();
+      });
+      recorder.stop();
+      await stopPromise;
+      audioBlob = new Blob(audioChunksRef.current, { type: audioMimeRef.current || "audio/mp4" });
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
     setIsRecording(false);
     setIsRunning(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
 
-    // Auto-save
+    // Upload audio
+    let savedAudioPath: string | null = null;
+    if (audioBlob && audioBlob.size > 1000) {
+      savedAudioPath = await uploadAudioBlob(audioBlob);
+    }
+
+    // Auto-save with transcript + audio — always save if there's audio or text
     const finalText = transcript + (interimText ? " " + interimText : "");
-    if (finalText.trim()) {
-      saveHistory({
+    if (finalText.trim() || savedAudioPath) {
+      const entry: RetellEntry = {
         id: Date.now().toString(),
-        transcript: finalText.trim(),
+        transcript: finalText.trim() || "(语音未识别到文字，可播放音频收听)",
         episode: episode || `第 ${history.length + 1} 次`,
         date: new Date().toLocaleString("zh-CN"),
-      });
+      };
+      if (savedAudioPath) entry.audioPath = savedAudioPath;
+
+      console.log("[RetellRecorder] savedAudioPath:", savedAudioPath, "entry.audioPath:", entry.audioPath);
+
+      // Insert into local history right away so "听录音" appears instantly
+      setHistory((prev) => [entry as RetellEntry, ...prev]);
+
+      // Sync to server in the background (ignore errors — file is already saved)
+      saveHistory(entry).catch(() => {});
     }
   }, [transcript, interimText, episode, history.length]);
 
+  const cleanup = useCallback(() => {
+    isRecordingRef.current = false;
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      recognitionRef.current = null;
+    }
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setIsRecording(false);
+    setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
+
   const handleStart = () => {
+    cleanup();
     setTimeLeft(30);
     setTranscript("");
     setInterimText("");
@@ -116,24 +261,31 @@ export default function RetellRecorder() {
   };
 
   const handleReset = () => {
-    if (isRunning || isRecording) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-      setIsRecording(false);
-      setIsRunning(false);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
+    cleanup();
     setTimeLeft(30);
     setTranscript("");
     setInterimText("");
   };
 
+  const playAudio = (path: string) => {
+    const audio = new Audio(path);
+    audio.play().catch(() => {});
+  };
+
   const timerPct = timeLeft / 30;
+  const isHttp = typeof window !== "undefined" && location.protocol !== "https:" && location.hostname !== "localhost";
 
   return (
     <div className="flex flex-col gap-3">
+      {/* HTTP warning banner */}
+      {isHttp && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-3">
+          <p className="text-xs text-amber-800 leading-relaxed">
+            ⚠️ 当前页面通过 HTTP 访问，录音功能需要 HTTPS 加密连接。请配置 SSL 证书后通过 https:// 访问。
+          </p>
+        </div>
+      )}
+
       {/* Header hint */}
       <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl p-3 border border-teal-200">
         <p className="text-xs text-teal-700 leading-relaxed">
@@ -207,6 +359,13 @@ export default function RetellRecorder() {
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
+
+        {audioUploading && (
+          <div className="flex items-center justify-center gap-2 mt-3 text-xs text-gray-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            音频上传中...
+          </div>
+        )}
       </div>
 
       {/* Recording indicator */}
@@ -273,10 +432,22 @@ export default function RetellRecorder() {
                     <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
                       {entry.transcript}
                     </p>
-                    <div className="flex gap-2 mt-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-400 flex-wrap">
                       <span>{entry.episode}</span>
                       <span>·</span>
                       <span>{entry.date}</span>
+                      {entry.audioPath && (
+                        <>
+                          <span className="text-gray-300">·</span>
+                          <button
+                            onClick={() => playAudio(entry.audioPath!)}
+                            className="flex items-center gap-1 text-pet-teal-dark font-bold hover:underline"
+                          >
+                            <Play className="w-3 h-3 fill-pet-teal-dark" />
+                            听录音
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -287,4 +458,13 @@ export default function RetellRecorder() {
       )}
     </div>
   );
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

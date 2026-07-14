@@ -99,6 +99,7 @@ export interface SpeakingRecord {
   date: string;
   scene: string;
   transcript: string;
+  audioPath?: string;
 }
 
 export async function saveSpeakingRecord(record: SpeakingRecord): Promise<void> {
@@ -131,7 +132,7 @@ export async function deletePhrase(id: string): Promise<void> {
 }
 
 // ====== Retell Records ======
-export async function saveRetell(record: { date: string; transcript: string; episode: string }): Promise<void> {
+export async function saveRetell(record: { date: string; transcript: string; episode: string; audioPath?: string }): Promise<void> {
   await api("/retells", { method: "POST", body: JSON.stringify(record) });
 }
 

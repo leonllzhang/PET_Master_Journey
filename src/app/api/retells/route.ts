@@ -7,9 +7,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { date, transcript, episode } = await request.json();
+  const { date, transcript, episode, audioPath } = await request.json();
   const record = await prisma.retellRecord.create({
-    data: { date, transcript, episode: episode || "" },
+    data: { date, transcript, episode: episode || "", audioPath },
   });
   return NextResponse.json(record);
 }

@@ -7,9 +7,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const { date, scene, transcript } = await request.json();
+  const { date, scene, transcript, audioPath } = await request.json();
   const record = await prisma.speaking.create({
-    data: { date, scene, transcript },
+    data: { date, scene, transcript, audioPath },
   });
   return NextResponse.json(record);
 }

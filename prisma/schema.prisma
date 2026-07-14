@@ -39,6 +39,7 @@ model Speaking {
   date       String
   scene      String
   transcript String
+  audioPath  String?
   createdAt  DateTime @default(now())
 }
 
@@ -55,5 +56,6 @@ model RetellRecord {
   date       String
   transcript String
   episode    String   @default("")
+  audioPath  String?
   createdAt  DateTime @default(now())
 }
